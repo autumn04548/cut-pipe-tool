@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>雷射切管估價工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 5px; }
+    input { width: 80px; }
+    .result { margin-top: 20px; padding: 15px; background: #fff; border-radius: 6px; white-space: pre-line; }
+  </style>
+</head>
+<body>
+<h2>雷射切管估價工具</h2>
+
+<table id="inputTable">
+  <tr>
+    <th>管徑</th><th>長度(mm)</th><th>數量</th><th>孔數</th><th>板厚(mm)</th><th>切頭尾</th>
+  </tr>
+  <tr>
+    <td><input value="50"></td>
+    <td><input value="100"></td>
+    <td><input value="10"></td>
+    <td><input value="3"></td>
+    <td><input value="2"></td>
+    <td><input type="checkbox" checked></td>
+  </tr>
+</table>
+<br/>
+<button onclick="addRow()">➕ 增加一列</button>
+<button onclick="calculate()">📊 計算估價</button>
+
+<div class="result" id="output">請輸入資料後點擊計算。</div>
+
+<script>
+function addRow() {
+  const row = document.createElement("tr");
+  row.innerHTML = `<td><input></td><td><input></td><td><input></td><td><input></td><td><input></td><td><input type="checkbox" checked></td>`;
+  document.getElementById("inputTable").appendChild(row);
+}
+
+function calculate() {
+  const rows = document.querySelectorAll("#inputTable tr:not(:first-child)");
+  const groups = {};
+
+  rows.forEach(row => {
+    const [pipe, len, qty, hole, thick, cut] = row.querySelectorAll("input");
+    const d = pipe.value.trim();
+    const l = parseFloat(len.value);
+    const q = parseInt(qty.value);
+    const h = parseInt(hole.value);
+    const t = parseFloat(thick.value);
+    const cutFlag = cut.checked;
+    if (!d || !l || !q) return;
+
+    if (!groups[d]) groups[d] = [];
+    groups[d].push({ l, q, h: h || 0, t, cut: cutFlag });
+  });
+
+  let output = "";
+  for (let dia in groups) {
+    let totalLen = 0, totalQty = 0, totalFee = 0, thick = 0;
+    let group = groups[dia];
+    group.forEach(g => {
+      const itemFee = (g.h * 5) + (g.cut ? 10 : 0);
+      totalLen += g.l * g.q;
+      totalQty += g.q;
+      totalFee += itemFee * g.q;
+      thick = g.t;
+    });
+    const tubePerPiece = 5750;
+    const tubeCount = Math.ceil(totalLen / tubePerPiece);
+    const tubeFee = (thick > 2.5 ? 300 : 200) * tubeCount;
+    const avgPrice = ((totalFee + tubeFee) / totalQty).toFixed(2);
+
+    output += `【管徑 ${dia}】
+`;
+    output += `總件數：${totalQty}，總長度：${totalLen} mm
+`;
+    output += `上管費：$${tubeFee}，加工總費：$${totalFee}
+`;
+    output += `平均單價：$${avgPrice}
+
+`;
+  }
+
+  document.getElementById("output").innerText = output || "請確認資料格式正確";
+}
+</script>
+</body>
+</html>
